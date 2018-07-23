@@ -35,6 +35,12 @@ def _unset_raw_connection(original):
     return inner
 
 
+# import the logging library
+import logging
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
+
 def _get_result_or_execute_query(execute_query_func, cache,
                                  cache_key, table_cache_keys):
     data = cache.get_many(table_cache_keys + [cache_key])
@@ -43,9 +49,13 @@ def _get_result_or_execute_query(execute_query_func, cache,
     new_table_cache_keys.difference_update(data)
 
     if not new_table_cache_keys and cache_key in data:
-        timestamp, result = data.pop(cache_key)
-        if timestamp >= max(data.values()):
-            return result
+        res = data.pop(cache_key)
+        if res is None:
+            logger.error("Cache key was not in data")
+        else:
+            timestamp, result = res
+            if timestamp >= max(data.values()):
+                return result
 
     result = execute_query_func()
     if result.__class__ not in ITERABLES and isinstance(result, Iterable):
